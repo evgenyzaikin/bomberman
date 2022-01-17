@@ -1,0 +1,35 @@
+@font-face {
+  font-family: "ArcadePix";
+  src: url(../font/PressStart2P-vaV7.ttf);
+}
+
+p {
+  font-family: "ArcadePix";
+  font-size: 20px;
+}
+
+.main-wrapper {
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.testimage{
+  width: 40px;
+  height: 40px;
+  display: block;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  z-index: 1;
+}
+
+img{
+  width: 100%;
+}
+
+.game-field{
+  position: relative;
+}
