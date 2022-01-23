@@ -16,7 +16,12 @@ p {
   transform: translate(-50%, -50%);
 }
 
-.testimage{
+.testimage,
+.wall,
+.f-wall,
+.hero,
+.bomb,
+.mushroom {
   width: 40px;
   height: 40px;
   display: block;
@@ -24,12 +29,35 @@ p {
   top: 0px;
   left: 0px;
   z-index: 1;
+  background-size: 100%;
 }
 
-img{
+.wall {
+  background-image: url("../img/block.png");
+}
+
+.f-wall {
+  background-image: url("../img/frag-block.png");
+}
+
+.hero {
+  background-image: url("../img/hero.png");
+  z-index: 2;
+}
+
+.mushroom{
+  background-image: url("../img/mob.png");
+  z-index: 3;
+}
+
+.bomb{
+  background-image: url("../img/bomb2.png");
+}
+
+img {
   width: 100%;
 }
 
-.game-field{
+.game-field {
   position: relative;
 }

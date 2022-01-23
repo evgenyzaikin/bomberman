@@ -1,7 +1,12 @@
 "use strict";
 
-
 let game;
+let view;
+const NUM_OF_COLUMN = 21; // 11
+const NUM_OF_ROW = 17; // 9
+const WIDTH_PX = 40;
+const HEIGHT_PX = 40;
+const TICK_INTERVAL = 500;
 
 //базовое препятствие
 class Barrier {
@@ -22,7 +27,7 @@ class Bomb extends Barrier {
   }
   // возвращает ячейку если координаты корректны
   getCell(x, y) {
-    if (x >= 0 && x < game.field[0].lenght && y >= 0 && y < game.field.length) {
+    if (x >= 0 && x < game.field[0].length && y >= 0 && y < game.field.length) {
       return game.field[x][y];
     }
     return null;
@@ -129,8 +134,8 @@ class Entity {
   }
   // проверка ячейки на возможность перехода
   checkCell(x, y) {
-    if (x >= 0 && x < game.field[0].lenght && y >= 0 && y < game.field.length) {
-      return Boolean(game.field[x][y].barrier);
+    if (x >= 0 && x < game.field[0].length && y >= 0 && y < game.field.length) {
+      return !Boolean(game.field[x][y].barrier);
     }
     return false;
   }
@@ -139,11 +144,29 @@ class Entity {
     this.x = x;
     this.y = y;
   }
+  // переход на ячейку с проверкой возможности перехода
+  move(dx, dy) {
+    if (this.checkCell(this.x + dx, this.y + dy)) {
+      this.goToCell(this.x + dx, this.y + dy);
+    }
+  }
 }
 
 class Mushroom extends Entity {
   constructor(x, y) {
     super(x, y, "Mushroom");
+  }
+  doMove() {
+    let min = -1; //Math.floor(Math.random() * (max - min + 1) + min)
+    let max = 1;
+    let dx = 0;
+    let dy = 0;
+    if (Math.floor(Math.random() * (1 - 0 + 1) + 0) == 0) {
+      dx = Math.floor(Math.random() * (max - min + 1) + min);
+    } else {
+      dy = Math.floor(Math.random() * (max - min + 1) + min);
+    }
+    this.move(dx, dy);
   }
 }
 
@@ -172,58 +195,31 @@ class Game {
     this.bombList = [];
     this.wallList = [];
     this.boxList = [];
-    this.hero = new Hero(0, 0);
+    this.hero = new Hero(1, 1);
     this.mushList = [];
-    this.initField(11, 9);
+    this.initField(NUM_OF_COLUMN, NUM_OF_ROW);
+    this.tickPassed = 1;
   }
   // инициализация игрового поля
   initField(width, height) {
-    for (let i = 0; i < height; i++) {
+    for (let i = 0; i < width; i++) {
       let row = [];
-      for (let j = 0; j < width; j++) {
-        row.push(new Cell(j, i));
+      for (let j = 0; j < height; j++) {
+        row.push(new Cell(i, j));
       }
       this.field.push(row);
     }
   }
   // заполнение игрового поля
   fillField(numOfMushrooms, numOfBoxes) {
-    // заполнение верхней строчки стенами
-    for (let i = 0; i < game.field[0].lenght; i++) {
-      let barr = new Barrier(i, 0, false, "Wall");
-      game.field[i][0].barrier = barr;
-      this.wallList.push(barr);
-    }
-
-    //заполнение нижней строчки стенами
-    for (let i = 0; i < game.field[0].lenght; i++) {
-      let barr = new Barrier(i, game.field[0].lenght - 1, false, "Wall");
-      game.field[i][game.field[0].lenght - 1].barrier = barr;
-      this.wallList.push(barr);
-    }
-
-    // заполнение левой колонны стенами
-    for (let i = 0; i < game.field.lenght; i++) {
-      let barr = new Barrier(0, i, false, "Wall");
-      game.field[0][i].barrier = barr;
-      this.wallList.push(barr);
-    }
-
-    // заполнение правой колонны стенами
-    for (let i = 0; i < game.field.lenght; i++) {
-      let barr = new Barrier(game.field.lenght - 1, i, false, "Wall");
-      game.field[game.field.lenght - 1][i].barrier = barr;
-      this.wallList.push(barr);
-    }
+    // установка стен по краям игрового поля
+    this.setHorizontalWalls();
+    this.setVerticalWalls();
 
     // заполнение игрового поля стенами
-    for (let i = 2; i < game.field[0].lenght - 1; i++) {
-      for (let j = 2; j < game.field.lenght - 1; i++) {
-        if (i % 2 == 0 && j % 2 == 0) {
-          let barr = new Barrier(i, j, false, "Wall");
-          game.field[i][j].barrier = barr;
-          this.wallList.push(barr);
-        }
+    for (let i = 2; i < NUM_OF_COLUMN - 1; i += 2) {
+      for (let j = 2; j < NUM_OF_ROW - 1; j += 2) {
+        this.setWall(i, j);
       }
     }
 
@@ -232,12 +228,9 @@ class Game {
     this.hero.y = 1;
 
     // установка ящиков
-    for (let i = 2; i < game.field[0].lenght - 1; i += 2) {
-      for (let j = 2; j < game.field.lenght - 1; i += 2) {
-        this.setBoxes(i, j, 2);
-      }
-    }
+    this.setBoxes(4, 5);
 
+    // установка ящиков
     // установка грибов
     switch (numOfMushrooms) {
       case 4:
@@ -245,38 +238,160 @@ class Game {
       case 3:
         this.setMushroom(1, 7);
       case 2:
-        this.setMushroom(9, 1);
+        this.setMushroom(8, 2);
       case 1:
-        this.setMushroom(9, 7);
+        this.setMushroom(8, 6);
     }
   }
-  // установка указанного количества ящиков(Box) в зоне 3*3
-  setBoxes(x, y, numOfBoxes) {
-    let dx = 0;
-    let dy = 0;
-    let i = numOfBoxes;
-    let maxTryOfSet = numOfBoxes + 3;
-    while (i) {
-      dx = Math.floor(Math.random() * 3 - 1);
-      dy = Math.floor(Math.random() * 3 - 1);
-      if (game.field[x + dx][y + dy].barrier === null) {
-        let box = new Barrier(x + dx, y + dy, true, "Box");
-        game.field[x + dx][y + dy].barrier = box;
-        game.boxList.push(box);
-        i--;
-      }
-      maxTryOfSet--;
-      if (maxTryOfSet == 0) {
-        break;
+
+  // Установка горизонтальных стен по краям карты
+  setHorizontalWalls() {
+    for (let i = 0; i < NUM_OF_COLUMN; i++) {
+      this.setWall(i, 0);
+      this.setWall(i, NUM_OF_ROW - 1);
+    }
+  }
+
+  // Установка вертикальных стен по краям карты.
+  // Угловые стены устанавливаются в методе setHorizontalWalls
+  setVerticalWalls() {
+    for (let i = 1; i < NUM_OF_ROW - 1; i++) {
+      this.setWall(0, i);
+      this.setWall(NUM_OF_COLUMN - 1, i);
+    }
+  }
+
+  // установка стены по координатам
+  setWall(x, y) {
+    let wall = new Barrier(x, y, false, "Wall");
+    this.field[x][y].barrier = wall;
+    this.wallList.push(wall);
+    return wall;
+  }
+
+  // установка ящиков(Box)
+  setBoxes(even, odd) {
+    for (let i = 1; i < NUM_OF_COLUMN - 1; i++) {
+      let x = i;
+      let j = x % 2 == 0 ? even : odd;
+
+      while (j) {
+        let rndY = Math.floor(Math.random() * NUM_OF_ROW);
+        // условие для гарантированного свободного места для спавна героя
+        if (x >= 1 && x <= 2 && rndY >= 1 && rndY <= 2) {
+          continue;
+        }
+        if (this.field[x][rndY].barrier === null) {
+          let box = new Barrier(x, rndY, true, "Box");
+          this.field[x][rndY].barrier = box;
+          this.boxList.push(box);
+          j--;
+        }
       }
     }
   }
-  // добавление гриба
+
+  // добавление гриба в зоне 3*3
   setMushroom(x, y) {
-    let mushroom = new Mushroom(x, y);
-    this.mushList.push(mushroom);
+    for (let dy of [1, 0, -1]) {
+      for (let dx of [1, 0, -1]) {
+        if (this.field[x + dx][y + dy].barrier === null) {
+          let mushroom = new Mushroom(x + dx, y + dy);
+          this.mushList.push(mushroom);
+          return mushroom;
+        }
+      }
+    }
+  }
+
+  tick() {
+    this.tickPassed += 1;
+
+    for (const mush of this.mushList) {
+      mush.doMove();
+    }
+
+    view.redraw();
+  }
+}
+
+// описание связи между элементом(ячейка или Entity) и Node
+class CellNodeLink {
+  constructor(cell, node) {
+    this.cell = cell;
+    this.node = node;
+  }
+}
+
+// отрисовка и перерисовка
+class View {
+  constructor() {
+    this.bombList = [];
+    this.wallList = [];
+    this.boxList = [];
+    this.hero = [];
+    this.mushList = [];
+    this.changeList = [];
+    this.fieldWrap = document.querySelector(".game-field");
+    this.tickPassed = document.querySelector(".tick");
+  }
+  init() {
+    this.fieldWrap.style.height = (HEIGHT_PX * NUM_OF_ROW).toString() + "px";
+    this.fieldWrap.style.width = (WIDTH_PX * NUM_OF_COLUMN).toString() + "px";
+    for (const col of game.field) {
+      for (const cell of col) {
+        this.createLink(cell);
+      }
+    }
+    for (const obj of game.mushList) {
+      this.createLink(obj);
+    }
+    this.createLink(game.hero);
+  }
+  // создаёт node, создаёт связь между node и элементом,
+  // заносит связь в соответствующий массив
+  createLink(obj) {
+    let item = document.createElement("div");
+    let link = new CellNodeLink(obj, item);
+    this.fieldWrap.appendChild(item);
+    if (obj.barrier) {
+      switch (obj.barrier.name) {
+        case "Wall":
+          item.classList.add("wall");
+          this.wallList.push(link);
+          break;
+        case "Box":
+          item.classList.add("f-wall");
+          this.boxList.push(link);
+          break;
+      }
+    }
+    if (obj.name) {
+      switch (obj.name) {
+        case "Mushroom":
+          item.classList.add("mushroom");
+          this.mushList.push(link);
+          break;
+        case "Hero":
+          item.classList.add("hero");
+          this.hero = link;
+      }
+    }
+    item.style.top = (HEIGHT_PX * obj.y).toString() + "px";
+    item.style.left = (WIDTH_PX * obj.x).toString() + "px";
+  }
+  redraw() {
+    this.tickPassed.textContent = game.tickPassed;
+    for (const link of this.mushList) {
+      link.node.style.top = (HEIGHT_PX * link.cell.y).toString() + "px";
+      link.node.style.left = (WIDTH_PX * link.cell.x).toString() + "px";
+    }
   }
 }
 
 game = new Game();
-game.fillField(2,22);
+game.fillField(2, 22);
+view = new View();
+view.init();
+
+let timerId = setInterval(game.tick.bind(game), TICK_INTERVAL);
