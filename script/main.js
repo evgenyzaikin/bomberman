@@ -2,11 +2,13 @@
 
 let game;
 let view;
+let directionKey = null;
+let isPlantBomb = false;
 const NUM_OF_COLUMN = 21; // 11
 const NUM_OF_ROW = 17; // 9
 const WIDTH_PX = 40;
 const HEIGHT_PX = 40;
-const TICK_INTERVAL = 500;
+const TICK_INTERVAL = 300;
 
 //базовое препятствие
 class Barrier {
@@ -22,7 +24,7 @@ class Barrier {
 class Bomb extends Barrier {
   constructor(x, y) {
     super(x, y, true, "Bomb");
-    this.timer = 4; // время до взрыва
+    this.timer = 5; // время до взрыва
     this.blastList = []; // список взрывающихся ячеек
   }
   // возвращает ячейку если координаты корректны
@@ -175,7 +177,30 @@ class Hero extends Entity {
     super(x, y, "Hero");
   }
   setBomb() {
-    game.bombList.push(new Bomb(this.x, this.y));
+    if (game.field[this.x][this.y].barrier == null) {
+      let bomb = new Bomb(this.x, this.y);
+      game.field[this.x][this.y].barrier = bomb;
+      game.bombList.push(bomb);
+      view.createLink(bomb);
+    }
+  }
+  doMove() {
+    switch (directionKey) {
+      case "KeyA":
+        this.move(-1, 0);
+        break;
+      case "KeyD":
+        this.move(1, 0);
+        break;
+      case "KeyW":
+        this.move(0, -1);
+        break;
+      case "KeyS":
+        this.move(0, 1);
+        break;
+      default:
+        break;
+    }
   }
 }
 
@@ -307,6 +332,7 @@ class Game {
   tick() {
     this.tickPassed += 1;
 
+    this.hero.doMove();
     for (const mush of this.mushList) {
       mush.doMove();
     }
@@ -375,6 +401,11 @@ class View {
         case "Hero":
           item.classList.add("hero");
           this.hero = link;
+          break;
+        case "Bomb":
+          item.classList.add("bomb");
+          this.bombList.push(link);
+          break;
       }
     }
     item.style.top = (HEIGHT_PX * obj.y).toString() + "px";
@@ -382,10 +413,55 @@ class View {
   }
   redraw() {
     this.tickPassed.textContent = game.tickPassed;
+
+    // перерисовка героя
+    this.hero.node.style.top = (HEIGHT_PX * this.hero.cell.y).toString() + "px";
+    this.hero.node.style.left = (WIDTH_PX * this.hero.cell.x).toString() + "px";
+
+    // перерисовка грибов
     for (const link of this.mushList) {
       link.node.style.top = (HEIGHT_PX * link.cell.y).toString() + "px";
       link.node.style.left = (WIDTH_PX * link.cell.x).toString() + "px";
     }
+
+    // перерисовка бомб
+    for (const link of this.bombList) {
+      link.node.style.top = (HEIGHT_PX * link.cell.y).toString() + "px";
+      link.node.style.left = (WIDTH_PX * link.cell.x).toString() + "px";
+    }
+  }
+}
+
+function setDirectionKey(event) {
+  switch (event.code) {
+    case "KeyA":
+      directionKey = "KeyA";
+      return;
+      break;
+    case "KeyD":
+      directionKey = "KeyD";
+      return;
+      break;
+    case "KeyW":
+      directionKey = "KeyW";
+      return;
+      break;
+    case "KeyS":
+      directionKey = "KeyS";
+      return;
+      break;
+    default:
+      break;
+  }
+}
+
+function resetDirectionKey(event) {
+  directionKey = null;
+}
+
+function setBomb(event) {
+  if (event.code == "Space" && event.repeat == false) {
+    game.hero.setBomb();
   }
 }
 
@@ -395,3 +471,7 @@ view = new View();
 view.init();
 
 let timerId = setInterval(game.tick.bind(game), TICK_INTERVAL);
+
+document.addEventListener("keydown", setDirectionKey);
+document.addEventListener("keyup", resetDirectionKey);
+document.addEventListener("keydown", setBomb);
