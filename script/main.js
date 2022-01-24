@@ -37,83 +37,25 @@ class Bomb extends Barrier {
   // проставляет в ячейки флаг взрыва, добавляет такие ячейки в blastList
   boom() {
     let cell = null;
-    // +x
-    for (let i = 0; i <= 2; i++) {
-      cell = this.getCell(x + i, y);
 
-      if (cell) {
-        if (cell.barrier) {
-          if (cell.barrier.isFragile == true) {
-            cell.isBlast = true;
-            this.blastList.add(cell);
-            break;
-          } else {
-            break;
+    for (let dx of [-1, 1]) {
+      for (let dy of [-1, 1]) {
+        for (let i = 0; i <= 2; i++) {
+          cell = this.getCell(this.x + dx * i, this.y + dy * i);
+
+          if (cell) {
+            if (cell.barrier) {
+              if (cell.barrier.isFragile == true) {
+                let blast = new Blast(cell.x + dx * i, cell.y + dy * i);
+                this.blastList.push(blast);
+                break;
+              } else {
+                break;
+              }
+            }
+            this.blastList.push(cell);
           }
         }
-
-        cell.isBlast = true;
-        this.blastList.add(cell);
-      }
-    }
-
-    // -x
-    for (let i = 0; i <= 2; i++) {
-      cell = this.getCell(x - i, y);
-
-      if (cell) {
-        if (cell.barrier) {
-          if (cell.barrier.isFragile == true) {
-            cell.isBlast = true;
-            this.blastList.add(cell);
-            break;
-          } else {
-            break;
-          }
-        }
-
-        cell.isBlast = true;
-        this.blastList.add(cell);
-      }
-    }
-
-    // +y
-    for (let i = 0; i <= 2; i++) {
-      cell = this.getCell(x, y + i);
-
-      if (cell) {
-        if (cell.barrier) {
-          if (cell.barrier.isFragile == true) {
-            cell.isBlast = true;
-            this.blastList.add(cell);
-            break;
-          } else {
-            break;
-          }
-        }
-
-        cell.isBlast = true;
-        this.blastList.add(cell);
-      }
-    }
-
-    // -y
-    for (let i = 0; i <= 2; i++) {
-      cell = this.getCell(x, y - i);
-
-      if (cell) {
-        if (cell.barrier) {
-          if (cell.barrier.isFragile == true) {
-            cell.isBlast = true;
-            this.blastList.add(cell);
-            break;
-          } else {
-            break;
-          }
-        }
-
-        cell.isBlast = true;
-        this.blastList.add(cell);
       }
     }
   }
@@ -201,6 +143,13 @@ class Hero extends Entity {
       default:
         break;
     }
+  }
+}
+
+// взрывная волна
+class Blast extends Entity {
+  constructor(x, y) {
+    super(x, y, "Blast");
   }
 }
 
@@ -329,6 +278,19 @@ class Game {
     }
   }
 
+  bombUpdate() {
+    for (const bomb of this.bombList) {
+      bomb.timer -= 1;
+      if (bomb.timer == 0) {
+        bomb.boom();
+      }
+      if (bomb.timer == -1) {
+        // удалить из списков
+        // удалить объект
+      }
+    }
+  }
+
   tick() {
     this.tickPassed += 1;
 
@@ -336,6 +298,7 @@ class Game {
     for (const mush of this.mushList) {
       mush.doMove();
     }
+    this.bombUpdate();
 
     view.redraw();
   }
@@ -346,6 +309,7 @@ class CellNodeLink {
   constructor(cell, node) {
     this.cell = cell;
     this.node = node;
+    this.list = [];
   }
 }
 

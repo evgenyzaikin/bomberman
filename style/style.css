@@ -21,7 +21,8 @@ p {
 .f-wall,
 .hero,
 .bomb,
-.mushroom {
+.mushroom,
+.blast {
   width: 40px;
   height: 40px;
   display: block;
@@ -45,13 +46,18 @@ p {
   z-index: 2;
 }
 
-.mushroom{
+.mushroom {
   background-image: url("../img/mob.png");
   z-index: 3;
 }
 
-.bomb{
+.bomb {
   background-image: url("../img/bomb2.png");
+}
+
+.blast {
+  background-image: url("../img/boom.png");
+  z-index: 2;
 }
 
 img {
