@@ -8,7 +8,7 @@ const NUM_OF_COLUMN = 21; // 11
 const NUM_OF_ROW = 17; // 9
 const WIDTH_PX = 40;
 const HEIGHT_PX = 40;
-const TICK_INTERVAL = 300;
+const TICK_INTERVAL = 500;
 
 //базовое препятствие
 class Barrier {
@@ -18,6 +18,9 @@ class Barrier {
     this.isFragile = isFragile; //true, если разрушаем
     this.name = name;
   }
+  destroy() {
+    view.deleteByObj(this);
+  }
 }
 
 // бомба
@@ -25,8 +28,9 @@ class Bomb extends Barrier {
   constructor(x, y) {
     super(x, y, true, "Bomb");
     this.timer = 5; // время до взрыва
-    this.blastList = []; // список взрывающихся ячеек
+    this.blastList = []; // список объектов blast
   }
+
   // возвращает ячейку если координаты корректны
   getCell(x, y) {
     if (x >= 0 && x < game.field[0].length && y >= 0 && y < game.field.length) {
@@ -34,37 +38,59 @@ class Bomb extends Barrier {
     }
     return null;
   }
-  // проставляет в ячейки флаг взрыва, добавляет такие ячейки в blastList
+
+  // проверяет состояние бомбы, вызывает boom
+  check() {
+    if (this.timer == 0) {
+      this.boom();
+    }
+    if (this.timer == -1) {
+      // удалить из списков
+      // удалить объект
+      this.clearBoom();
+    }
+  }
+
+  // добавляет в ячейки в blastList
   boom() {
     let cell = null;
-
-    for (let dx of [-1, 1]) {
-      for (let dy of [-1, 1]) {
-        for (let i = 0; i <= 2; i++) {
-          cell = this.getCell(this.x + dx * i, this.y + dy * i);
-
-          if (cell) {
-            if (cell.barrier) {
-              if (cell.barrier.isFragile == true) {
-                let blast = new Blast(cell.x + dx * i, cell.y + dy * i);
-                this.blastList.push(blast);
-                break;
+    this.timer = 0;
+    for (let dx of [-1, 0, 1]) {
+      for (let dy of [-1, 0, 1]) {
+        if ((Boolean(dx) && !Boolean(dy)) || (!Boolean(dx) && Boolean(dy))) {
+          for (let i = 1; i <= 2; i++) {
+            cell = this.getCell(this.x + dx * i, this.y + dy * i);
+            if (cell) {
+              console.log("cell", cell.x, cell.y, dx, dy, i);
+              if (cell.barrier) {
+                if (cell.barrier.isFragile == true) {
+                  let blast = new Blast(cell.x, cell.y);
+                  this.blastList.push(blast);
+                  view.createLink(blast);
+                  console.log("blast", blast.x, blast.y);
+                  break;
+                } else {
+                  break;
+                }
               } else {
-                break;
+                let blast = new Blast(cell.x, cell.y);
+                this.blastList.push(blast);
+                view.createLink(blast);
+                console.log("blast", blast.x, blast.y);
               }
             }
-            this.blastList.push(cell);
           }
         }
       }
     }
   }
-  // убирает флаги взрыва, очищает массив с "взорванными" ячейками
+
+  // очищает массив с "взорванными" ячейками
   clearBoom() {
-    let cell = null;
+    let blast = null;
     while (this.blastList.length > 0) {
-      cell = this.blastList.pop();
-      cell.isBlast = false;
+      blast = this.blastList.pop();
+      view.deleteNodeByObj(blast);
     }
   }
 }
@@ -160,6 +186,12 @@ class Cell {
     this.y = y;
     this.barrier = null;
     this.isBlast = false;
+  }
+  destroyBarrier() {
+    if (this.barrier && this.barrier.isFragile == true) {
+      this.barrier.destroy();
+      this.barrier = null;
+    }
   }
 }
 
@@ -280,15 +312,15 @@ class Game {
 
   bombUpdate() {
     for (const bomb of this.bombList) {
+      bomb.check();
       bomb.timer -= 1;
-      if (bomb.timer == 0) {
-        bomb.boom();
-      }
-      if (bomb.timer == -1) {
-        // удалить из списков
-        // удалить объект
-      }
     }
+  }
+
+  destroyBarrier(cell) {
+    let idx = this.boxList.indexOf(cell);
+    cell.destroyBarrier();
+    this.boxList.splice(idx, 1);
   }
 
   tick() {
@@ -304,12 +336,11 @@ class Game {
   }
 }
 
-// описание связи между элементом(ячейка или Entity) и Node
-class CellNodeLink {
-  constructor(cell, node) {
-    this.cell = cell;
+// описание связи между элементом(Entity или Barrier) и Node
+class ObjNodeLink {
+  constructor(obj, node) {
+    this.obj = obj;
     this.node = node;
-    this.list = [];
   }
 }
 
@@ -317,6 +348,7 @@ class CellNodeLink {
 class View {
   constructor() {
     this.bombList = [];
+    this.blastList = [];
     this.wallList = [];
     this.boxList = [];
     this.hero = [];
@@ -330,7 +362,7 @@ class View {
     this.fieldWrap.style.width = (WIDTH_PX * NUM_OF_COLUMN).toString() + "px";
     for (const col of game.field) {
       for (const cell of col) {
-        this.createLink(cell);
+        this.createLink(cell.barrier);
       }
     }
     for (const obj of game.mushList) {
@@ -341,11 +373,15 @@ class View {
   // создаёт node, создаёт связь между node и элементом,
   // заносит связь в соответствующий массив
   createLink(obj) {
+    if (!obj) {
+      return;
+    }
     let item = document.createElement("div");
-    let link = new CellNodeLink(obj, item);
+    let link = new ObjNodeLink(obj, item);
     this.fieldWrap.appendChild(item);
-    if (obj.barrier) {
-      switch (obj.barrier.name) {
+
+    if (obj.name) {
+      switch (obj.name) {
         case "Wall":
           item.classList.add("wall");
           this.wallList.push(link);
@@ -354,10 +390,6 @@ class View {
           item.classList.add("f-wall");
           this.boxList.push(link);
           break;
-      }
-    }
-    if (obj.name) {
-      switch (obj.name) {
         case "Mushroom":
           item.classList.add("mushroom");
           this.mushList.push(link);
@@ -370,28 +402,99 @@ class View {
           item.classList.add("bomb");
           this.bombList.push(link);
           break;
+        case "Blast":
+          item.classList.add("blast");
+          this.blastList.push(link);
+          break;
       }
+    } else {
+      return;
     }
     item.style.top = (HEIGHT_PX * obj.y).toString() + "px";
     item.style.left = (WIDTH_PX * obj.x).toString() + "px";
+  }
+  deleteByObj(obj) {
+    let arr = null;
+    switch (obj.name) {
+      case "Box":
+        arr = this.boxList;
+        break;
+      case "Mushroom":
+        arr = this.mushList;
+        break;
+      /*case "Hero":
+        arr = this.hero;
+        break;*/
+      case "Bomb":
+        arr = this.bombList;
+        break;
+      default:
+        break;
+    }
+
+    let link = this.getLink(obj);
+    let idx = arr.indexOf(link);
+    this.deleteNodeByObj(obj);
+    arr.splice(idx, 1);
+  }
+  deleteNodeByObj(obj) {
+    let link = this.getLink(obj);
+    if (!link) {
+      return;
+    }
+    console.log("deleteNodeByObj");
+    this.fieldWrap.removeChild(link.node);
+  }
+  // возвращает link по obj либо null если связь не найдена
+  getLink(obj) {
+    console.log("getLink");
+    if (this.hero.obj == obj) {
+      return link;
+    }
+    for (const link of this.mushList) {
+      if (link.obj == obj) {
+        return link;
+      }
+    }
+    for (const link of this.bombList) {
+      if (link.obj == obj) {
+        return link;
+      }
+    }
+    for (const link of this.blastList) {
+      if (link.obj == obj) {
+        return link;
+      }
+    }
+    for (const link of this.wallList) {
+      if (link.obj == obj) {
+        return link;
+      }
+    }
+    for (const link of this.boxList) {
+      if (link.obj == obj) {
+        return link;
+      }
+    }
+    return null;
   }
   redraw() {
     this.tickPassed.textContent = game.tickPassed;
 
     // перерисовка героя
-    this.hero.node.style.top = (HEIGHT_PX * this.hero.cell.y).toString() + "px";
-    this.hero.node.style.left = (WIDTH_PX * this.hero.cell.x).toString() + "px";
+    this.hero.node.style.top = (HEIGHT_PX * this.hero.obj.y).toString() + "px";
+    this.hero.node.style.left = (WIDTH_PX * this.hero.obj.x).toString() + "px";
 
     // перерисовка грибов
     for (const link of this.mushList) {
-      link.node.style.top = (HEIGHT_PX * link.cell.y).toString() + "px";
-      link.node.style.left = (WIDTH_PX * link.cell.x).toString() + "px";
+      link.node.style.top = (HEIGHT_PX * link.obj.y).toString() + "px";
+      link.node.style.left = (WIDTH_PX * link.obj.x).toString() + "px";
     }
 
     // перерисовка бомб
     for (const link of this.bombList) {
-      link.node.style.top = (HEIGHT_PX * link.cell.y).toString() + "px";
-      link.node.style.left = (WIDTH_PX * link.cell.x).toString() + "px";
+      link.node.style.top = (HEIGHT_PX * link.obj.y).toString() + "px";
+      link.node.style.left = (WIDTH_PX * link.obj.x).toString() + "px";
     }
   }
 }
@@ -419,6 +522,10 @@ function setDirectionKey(event) {
   }
 }
 
+function tick() {
+  game.tick();
+}
+
 function resetDirectionKey(event) {
   directionKey = null;
 }
@@ -434,7 +541,7 @@ game.fillField(2, 22);
 view = new View();
 view.init();
 
-let timerId = setInterval(game.tick.bind(game), TICK_INTERVAL);
+let timerId = setInterval(tick, TICK_INTERVAL);
 
 document.addEventListener("keydown", setDirectionKey);
 document.addEventListener("keyup", resetDirectionKey);
