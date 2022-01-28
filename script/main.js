@@ -27,8 +27,9 @@ class Barrier {
 class Bomb extends Barrier {
   constructor(x, y) {
     super(x, y, true, "Bomb");
-    this.timer = 5; // время до взрыва
+    this.timer = 7; // время до взрыва
     this.blastList = []; // список объектов blast
+    this.isExploded = false; //true если бомба была взорвана
   }
 
   // возвращает ячейку если координаты корректны
@@ -54,6 +55,7 @@ class Bomb extends Barrier {
   // добавляет в ячейки в blastList
   boom() {
     let cell = null;
+    this.isExploded = true;
     this.timer = 0;
     for (let dx of [-1, 0, 1]) {
       for (let dy of [-1, 0, 1]) {
@@ -61,13 +63,13 @@ class Bomb extends Barrier {
           for (let i = 1; i <= 2; i++) {
             cell = this.getCell(this.x + dx * i, this.y + dy * i);
             if (cell) {
-              console.log("cell", cell.x, cell.y, dx, dy, i);
               if (cell.barrier) {
                 if (cell.barrier.isFragile == true) {
                   let blast = new Blast(cell.x, cell.y);
                   this.blastList.push(blast);
                   view.createLink(blast);
-                  console.log("blast", blast.x, blast.y);
+                  this.getCell(this.x, this.y).barrier = null;
+                  game.cellExplosion(cell);
                   break;
                 } else {
                   break;
@@ -76,7 +78,8 @@ class Bomb extends Barrier {
                 let blast = new Blast(cell.x, cell.y);
                 this.blastList.push(blast);
                 view.createLink(blast);
-                console.log("blast", blast.x, blast.y);
+                this.getCell(this.x, this.y).barrier = null;
+                game.cellExplosion(cell);
               }
             }
           }
@@ -87,6 +90,9 @@ class Bomb extends Barrier {
 
   // очищает массив с "взорванными" ячейками
   clearBoom() {
+    view.deleteByObj(this);
+    let idx = game.bombList.indexOf(this);
+    game.bombList.splice(idx, 1);
     let blast = null;
     while (this.blastList.length > 0) {
       blast = this.blastList.pop();
@@ -138,6 +144,11 @@ class Mushroom extends Entity {
     }
     this.move(dx, dy);
   }
+  kill() {
+    view.deleteByObj(this);
+    let idx = game.mushList.indexOf(this);
+    game.mushList.splice(idx, 1);
+  }
 }
 
 class Hero extends Entity {
@@ -170,6 +181,9 @@ class Hero extends Entity {
         break;
     }
   }
+  kill() {
+    alert("Hero kill");
+  }
 }
 
 // взрывная волна
@@ -191,6 +205,19 @@ class Cell {
     if (this.barrier && this.barrier.isFragile == true) {
       this.barrier.destroy();
       this.barrier = null;
+    }
+    for (const mush of game.mushList) {
+      if (this.x == mush.x && this.y == mush.y) {
+        mush.kill();
+      }
+    }
+    for (const bomb of game.bombList) {
+      if (this.x == bomb.x && this.y == bomb.y) {
+        if (bomb.isExploded == false) bomb.boom();
+      }
+    }
+    if (this.x == game.hero.x && this.y == game.hero.y) {
+      game.hero.kill();
     }
   }
 }
@@ -317,9 +344,9 @@ class Game {
     }
   }
 
-  destroyBarrier(cell) {
-    let idx = this.boxList.indexOf(cell);
+  cellExplosion(cell) {
     cell.destroyBarrier();
+    let idx = this.boxList.indexOf(cell);
     this.boxList.splice(idx, 1);
   }
 
@@ -442,12 +469,10 @@ class View {
     if (!link) {
       return;
     }
-    console.log("deleteNodeByObj");
     this.fieldWrap.removeChild(link.node);
   }
   // возвращает link по obj либо null если связь не найдена
   getLink(obj) {
-    console.log("getLink");
     if (this.hero.obj == obj) {
       return link;
     }
