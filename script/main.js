@@ -6,9 +6,11 @@ let directionKey = null;
 let isPlantBomb = false;
 const NUM_OF_COLUMN = 21; // 11
 const NUM_OF_ROW = 17; // 9
-const WIDTH_PX = 40;
-const HEIGHT_PX = 40;
-const TICK_INTERVAL = 500;
+const WIDTH_PX = 30;
+const HEIGHT_PX = 30;
+const TICK_INTERVAL = 250;
+let isPause = true; //true если игра на паузе
+let isMenu = true; //true если в меню (для отключения Esc)
 
 //базовое препятствие
 class Barrier {
@@ -68,7 +70,7 @@ class Bomb extends Barrier {
                   let blast = new Blast(cell.x, cell.y);
                   this.blastList.push(blast);
                   view.createLink(blast);
-                  this.getCell(this.x, this.y).barrier = null;
+                  //this.getCell(this.x, this.y).barrier = null;
                   game.cellExplosion(cell);
                   break;
                 } else {
@@ -78,7 +80,7 @@ class Bomb extends Barrier {
                 let blast = new Blast(cell.x, cell.y);
                 this.blastList.push(blast);
                 view.createLink(blast);
-                this.getCell(this.x, this.y).barrier = null;
+                //this.getCell(this.x, this.y).barrier = null;
                 game.cellExplosion(cell);
               }
             }
@@ -93,6 +95,7 @@ class Bomb extends Barrier {
     view.deleteByObj(this);
     let idx = game.bombList.indexOf(this);
     game.bombList.splice(idx, 1);
+    this.getCell(this.x, this.y).barrier = null;
     let blast = null;
     while (this.blastList.length > 0) {
       blast = this.blastList.pop();
@@ -143,11 +146,16 @@ class Mushroom extends Entity {
       dy = Math.floor(Math.random() * (max - min + 1) + min);
     }
     this.move(dx, dy);
+
+    if (this.x == game.hero.x && this.y == game.hero.y) {
+      game.hero.kill();
+    }
   }
   kill() {
     view.deleteByObj(this);
     let idx = game.mushList.indexOf(this);
     game.mushList.splice(idx, 1);
+    game.score += 200;
   }
 }
 
@@ -182,7 +190,7 @@ class Hero extends Entity {
     }
   }
   kill() {
-    alert("Hero kill");
+    console.log("Hero kill " + Date.now());
   }
 }
 
@@ -204,7 +212,15 @@ class Cell {
   destroyBarrier() {
     if (this.barrier && this.barrier.isFragile == true) {
       this.barrier.destroy();
+
+      let idx = game.boxList.indexOf(this.barrier);
+      if (idx >= 0) {
+        game.boxList.splice(idx, 1);
+      }
+
       this.barrier = null;
+
+      game.score += 10;
     }
     for (const mush of game.mushList) {
       if (this.x == mush.x && this.y == mush.y) {
@@ -232,6 +248,9 @@ class Game {
     this.mushList = [];
     this.initField(NUM_OF_COLUMN, NUM_OF_ROW);
     this.tickPassed = 1;
+    this.timeLeft = 150;
+    this.heroLives = 3;
+    this.score = 0;
   }
   // инициализация игрового поля
   initField(width, height) {
@@ -346,20 +365,24 @@ class Game {
 
   cellExplosion(cell) {
     cell.destroyBarrier();
-    let idx = this.boxList.indexOf(cell);
-    this.boxList.splice(idx, 1);
+  }
+
+  decreaseTime() {
+    if (isPause == false) {
+      this.timeLeft--;
+    }
   }
 
   tick() {
-    this.tickPassed += 1;
-
-    this.hero.doMove();
-    for (const mush of this.mushList) {
-      mush.doMove();
+    if (isPause == false) {
+      this.tickPassed += 1;
+      this.hero.doMove();
+      for (const mush of this.mushList) {
+        mush.doMove();
+      }
+      this.bombUpdate();
+      view.redraw();
     }
-    this.bombUpdate();
-
-    view.redraw();
   }
 }
 
@@ -383,6 +406,9 @@ class View {
     this.changeList = [];
     this.fieldWrap = document.querySelector(".game-field");
     this.tickPassed = document.querySelector(".tick");
+    this.timeLeft = document.querySelector(".time-left");
+    this.heroLives = document.querySelector(".hero-lives");
+    this.score = document.querySelector(".score");
   }
   init() {
     this.fieldWrap.style.height = (HEIGHT_PX * NUM_OF_ROW).toString() + "px";
@@ -503,8 +529,13 @@ class View {
     }
     return null;
   }
+  opening() {}
   redraw() {
     this.tickPassed.textContent = game.tickPassed;
+
+    this.timeLeft.textContent = "Осталось времени: " + game.timeLeft;
+    this.heroLives.textContent = "Жизни: " + game.heroLives;
+    this.score.textContent = "Счёт: " + game.score;
 
     // перерисовка героя
     this.hero.node.style.top = (HEIGHT_PX * this.hero.obj.y).toString() + "px";
@@ -551,12 +582,33 @@ function tick() {
   game.tick();
 }
 
+function decreaseTime() {
+  game.decreaseTime();
+}
+
+function setPause(event) {
+  if (isMenu) {
+    return;
+  }
+  if (event.code == "Escape") {
+    if (isPause) {
+      setAllNone();
+      menu.gameWrap.style.display = "Block";
+      isPause = false;
+    } else {
+      setAllNone();
+      menu.pauseMenu.style.display = "Block";
+      isPause = true;
+    }
+  }
+}
+
 function resetDirectionKey(event) {
   directionKey = null;
 }
 
 function setBomb(event) {
-  if (event.code == "Space" && event.repeat == false) {
+  if (isPause == false && event.code == "Space" && event.repeat == false) {
     game.hero.setBomb();
   }
 }
@@ -566,8 +618,71 @@ game.fillField(2, 22);
 view = new View();
 view.init();
 
-let timerId = setInterval(tick, TICK_INTERVAL);
+let timerTick = setInterval(tick, TICK_INTERVAL);
+let timerTimeLeft = setInterval(decreaseTime, 1000);
 
 document.addEventListener("keydown", setDirectionKey);
 document.addEventListener("keyup", resetDirectionKey);
 document.addEventListener("keydown", setBomb);
+document.addEventListener("keydown", setPause);
+
+let menu = {
+  mainMenu: document.querySelector(".main-menu"),
+  enterName: document.querySelector(".enter-name"),
+  gameWrap: document.querySelector(".game-wrapper"),
+  tutorial: document.querySelector(".how-to-play"),
+  pauseMenu: document.querySelector(".pause-menu"),
+};
+
+function setAllNone() {
+  for (const i in menu) {
+    menu[i].style.display = "None";
+  }
+}
+
+let buttons = {
+  newGame: document.querySelector(".new-game"),
+  startGame: document.querySelector(".start-game"),
+  tutorial: document.querySelector(".tutorial"),
+  fromTutorialToMain: document.querySelector(".from-tutorial-to-main"),
+  pauseToGame: document.querySelector(".pause-to-game"),
+  pauseToTutorial: document.querySelector(".pause-to-tutorial"),
+  pauseToMain: document.querySelector(".pause-to-main"),
+};
+
+buttons.newGame.addEventListener("click", () => {
+  setAllNone();
+  menu.enterName.style.display = "Block";
+});
+
+buttons.startGame.addEventListener("click", () => {
+  setAllNone();
+  menu.gameWrap.style.display = "Block";
+  isMenu = false;
+  isPause = false;
+});
+
+buttons.tutorial.addEventListener("click", () => {
+  setAllNone();
+  menu.tutorial.style.display = "Block";
+});
+
+buttons.fromTutorialToMain.addEventListener("click", () => {
+  setAllNone();
+  menu.mainMenu.style.display = "Block";
+});
+
+buttons.pauseToGame.addEventListener("click", () => {
+  setAllNone();
+  menu.gameWrap.style.display = "Block";
+  isMenu = false;
+  isPause = false;
+});
+buttons.pauseToTutorial.addEventListener("click", () => {
+  setAllNone();
+  menu.tutorial.style.display = "Block";
+});
+buttons.pauseToMain.addEventListener("click", () => {
+  setAllNone();
+  menu.mainMenu.style.display = "Block";
+});

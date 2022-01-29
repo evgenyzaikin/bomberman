@@ -23,8 +23,8 @@ p {
 .bomb,
 .mushroom,
 .blast {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   display: block;
   position: absolute;
   top: 0px;
@@ -66,4 +66,63 @@ img {
 
 .game-field {
   position: relative;
+}
+
+.game-status-bar {
+  display: inline;
+  margin: 20px;
+}
+
+.about-author,
+.social-link {
+  display: inline-block;
+}
+
+button {
+  display: block;
+  margin: 12px;
+  padding: 15px 25px;
+  font-size: 20px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  font-family: "ArcadePix";
+  outline: none;
+  color: #fff;
+  background-color: #4caf50;
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 9px #999;
+}
+
+button:hover {
+  background-color: #3e8e41;
+}
+
+button:active {
+  background-color: #3e8e41;
+  box-shadow: 0 5px #666;
+  transform: translateY(4px);
+}
+
+.new-game,
+.leaderboard,
+.tutorial {
+  width: auto;
+}
+
+.main-menu,
+.enter-name,
+.how-to-play {
+  background-color: bisque;
+  border: none;
+  border-radius: 5px;
+  box-shadow: 5px 9px #999;
+}
+
+.title {
+  margin: 12px;
+  padding: 15px 25px;
+  font-family: "ArcadePix";
+  font-size: 20px;
 }
