@@ -6,6 +6,7 @@
 p {
   font-family: "ArcadePix";
   font-size: 20px;
+  text-align: left;
 }
 
 .main-wrapper,
@@ -19,6 +20,7 @@ p {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  text-align: center;
 }
 
 .pause-menu,
@@ -91,21 +93,23 @@ img {
   display: inline-block;
 }
 
-button {
-  display: block;
-  margin: 12px;
+button,
+.social-link {
+  margin: 12px auto;
   padding: 15px 25px;
   font-size: 20px;
   cursor: pointer;
   text-align: center;
-  text-decoration: none;
   font-family: "ArcadePix";
-  outline: none;
   color: #fff;
   background-color: #4caf50;
   border: none;
   border-radius: 15px;
   box-shadow: 0 9px #999;
+}
+
+button {
+  display: block;
 }
 
 button:hover {
@@ -119,9 +123,8 @@ button:active {
 }
 
 .new-game,
-.leaderboard,
 .tutorial {
-  width: auto;
+  width: 90%;
 }
 
 .main-menu,
@@ -136,6 +139,7 @@ button:active {
   border: none;
   border-radius: 5px;
   box-shadow: 5px 9px #999;
+  text-align: center;
 }
 
 .title {
@@ -143,4 +147,9 @@ button:active {
   padding: 15px 25px;
   font-family: "ArcadePix";
   font-size: 20px;
+  text-align: center;
+}
+
+.author {
+  font-size: 12px;
 }

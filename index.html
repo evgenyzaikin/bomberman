@@ -10,34 +10,45 @@
       <div class="main-menu">
         <div class="title">Bomberman</div>
         <button class="new-game">Новая игра</button>
-        <button class="leaderboard">Таблица лидеров</button>
         <button class="tutorial">Как играть</button>
         <div class="about-author">
-          <button class="social-link">
+          <a
+            class="social-link"
+            href="https://github.com/evgenyzaikin"
+            target="_blank"
+          >
             <img
               src="/img/social/GitHub.png"
               alt="GitHub"
               width="30px"
               height="30px"
-              href="https://github.com/evgenyzaikin"
             />
-          </button>
-          <button class="social-link">
+          </a>
+          <a
+            class="social-link"
+            href="mailto:evgenyzaikin96@gmail.com"
+            target="_blank"
+          >
             <img
               src="/img/social/gmail.ico"
               alt="Gmail"
               width="30px"
               height="30px"
             />
-          </button>
-          <button class="social-link">
+          </a>
+          <a
+            class="social-link"
+            href="https://t.me/etherentity"
+            target="_blank"
+          >
             <img
               src="/img/social/telegram.png"
               alt="Telegram"
               width="30px"
               height="30px"
             />
-          </button>
+          </a>
+          <div class="title author">Автор: Евгений Заикин</div>
         </div>
       </div>
       <div class="enter-name" style="display: none">
@@ -52,16 +63,13 @@
           Оружием героя является бомба, которой убиваются враги и разрушаются
           преграды.
         </p>
-        <p>WASD - перемещение, Пробел - поставить бомбу.</p>
+        <p>WASD - перемещение, Пробел - поставить бомбу, Escape - пауза.</p>
         <p>
           Герой не бессмертен. Касание врага, взрыв бомбы и истечение таймера
           убьют героя.
         </p>
         <p>У героя всего 3 жизни. После их исчерпания игра заканчивается.</p>
-        <p>
-          За каждого врага даётся 200 очков, за разрушенную преграду - 10.
-          Лучшие результаты попадают в таблицу лидеров.
-        </p>
+        <p>За каждого врага даётся 200 очков, за разрушенную преграду - 10.</p>
         <button class="from-tutorial-to-main">Ок</button>
       </div>
       <div class="pause-menu" style="display: none">
@@ -88,10 +96,9 @@
         <button class="to-main">В главное меню</button>
       </div>
       <div class="game-wrapper" style="display: none">
-        <p class="time-left game-status-bar">Текст</p>
-        <p class="hero-lives game-status-bar">Текст</p>
-        <p class="score game-status-bar">Текст</p>
-        <p class="tick game-status-bar">Текст</p>
+        <p class="time-left game-status-bar">0</p>
+        <p class="hero-lives game-status-bar">0</p>
+        <p class="score game-status-bar">0</p>
         <div class="game-field"></div>
       </div>
       <div class="intro">

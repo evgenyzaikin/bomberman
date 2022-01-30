@@ -60,6 +60,8 @@ class Bomb extends Barrier {
     let cell = null;
     this.isExploded = true;
     this.timer = 0;
+    cell = this.getCell(this.x, this.y);
+    this.setBlast(cell);
     for (let dx of [-1, 0, 1]) {
       for (let dy of [-1, 0, 1]) {
         if ((Boolean(dx) && !Boolean(dy)) || (!Boolean(dx) && Boolean(dy))) {
@@ -68,27 +70,25 @@ class Bomb extends Barrier {
             if (cell) {
               if (cell.barrier) {
                 if (cell.barrier.isFragile == true) {
-                  let blast = new Blast(cell.x, cell.y);
-                  this.blastList.push(blast);
-                  view.createLink(blast);
-                  //this.getCell(this.x, this.y).barrier = null;
-                  game.cellExplosion(cell);
+                  this.setBlast(cell);
                   break;
                 } else {
                   break;
                 }
               } else {
-                let blast = new Blast(cell.x, cell.y);
-                this.blastList.push(blast);
-                view.createLink(blast);
-                //this.getCell(this.x, this.y).barrier = null;
-                game.cellExplosion(cell);
+                this.setBlast(cell);
               }
             }
           }
         }
       }
     }
+  }
+  setBlast(cell) {
+    let blast = new Blast(cell.x, cell.y);
+    this.blastList.push(blast);
+    view.createLink(blast);
+    game.cellExplosion(cell);
   }
 
   // очищает массив с "взорванными" ячейками
@@ -471,7 +471,6 @@ class View {
     this.mushList = [];
     this.changeList = [];
     this.fieldWrap = document.querySelector(".game-field");
-    this.tickPassed = document.querySelector(".tick");
     this.timeLeft = document.querySelector(".time-left");
     this.heroLives = document.querySelector(".hero-lives");
     this.score = document.querySelector(".score");
@@ -628,8 +627,6 @@ class View {
     if (this.hero.obj) this.deleteByObj(this.hero.obj);
   }
   redraw() {
-    this.tickPassed.textContent = game.tickPassed;
-
     // перерисовка строки состояния
     this.timeLeft.textContent = "Time: " + game.timeLeft;
     this.heroLives.textContent = "Жизни: " + game.heroLives;
@@ -764,7 +761,6 @@ function levelLoad() {
   view.init();
 }
 function toMainAfterEndGame() {
-  // место для записи результата
   setAllNone();
   menu.mainMenu.style.display = "Block";
   game = new Game();
@@ -807,7 +803,6 @@ function showWinMenu() {
 
 let buttons = {
   newGame: document.querySelector(".new-game"),
-  startGame: document.querySelector(".start-game"),
   tutorial: document.querySelector(".tutorial"),
   fromTutorialToMain: document.querySelector(".from-tutorial-to-main"),
   pauseToGame: document.querySelector(".pause-to-game"),
@@ -818,11 +813,6 @@ let buttons = {
 };
 
 buttons.newGame.addEventListener("click", () => {
-  setAllNone();
-  menu.enterName.style.display = "Block";
-});
-
-buttons.startGame.addEventListener("click", () => {
   game = new Game();
   levelTransition();
 });
@@ -852,7 +842,7 @@ buttons.pauseToMain.addEventListener("click", () => {
   menu.mainMenu.style.display = "Block";
 });
 
-// эксперимент с foreach
+// кнопки, заданные через foreach
 buttons.loadLevel.forEach((btn) => {
   btn.addEventListener("click", () => {
     levelTransition();
@@ -863,6 +853,8 @@ buttons.toMain.forEach((btn) => {
     toMainAfterEndGame();
   });
 });
+
+
 
 setAllNone();
 menu.mainMenu.style.display = "Block";
