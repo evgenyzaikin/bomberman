@@ -8,12 +8,25 @@ p {
   font-size: 20px;
 }
 
-.main-wrapper {
+.main-wrapper,
+.pause-menu,
+.kill-menu,
+.pass-menu,
+.lost-menu,
+.win-menu {
   display: block;
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+}
+
+.pause-menu,
+.kill-menu,
+.pass-menu,
+.lost-menu,
+.win-menu {
+  z-index: 10;
 }
 
 .testimage,
@@ -113,7 +126,12 @@ button:active {
 
 .main-menu,
 .enter-name,
-.how-to-play {
+.how-to-play,
+.pause-menu,
+.kill-menu,
+.pass-menu,
+.lost-menu,
+.win-menu {
   background-color: bisque;
   border: none;
   border-radius: 5px;

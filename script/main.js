@@ -6,6 +6,7 @@ let directionKey = null;
 let isPlantBomb = false;
 const NUM_OF_COLUMN = 21; // 11
 const NUM_OF_ROW = 17; // 9
+const NUM_OF_LEVELS = 3;
 const WIDTH_PX = 30;
 const HEIGHT_PX = 30;
 const TICK_INTERVAL = 250;
@@ -100,6 +101,8 @@ class Bomb extends Barrier {
     while (this.blastList.length > 0) {
       blast = this.blastList.pop();
       view.deleteNodeByObj(blast);
+      let idx = view.blastList.indexOf(blast);
+      view.blastList.splice(idx, 1);
     }
   }
 }
@@ -156,6 +159,9 @@ class Mushroom extends Entity {
     let idx = game.mushList.indexOf(this);
     game.mushList.splice(idx, 1);
     game.score += 200;
+    if (game.mushList.length == 0) {
+      game.passLevel();
+    }
   }
 }
 
@@ -191,6 +197,7 @@ class Hero extends Entity {
   }
   kill() {
     console.log("Hero kill " + Date.now());
+    game.heroKill();
   }
 }
 
@@ -240,18 +247,53 @@ class Cell {
 
 class Game {
   constructor() {
+    this.init();
+  }
+  //устанавливает состояние игры в начале игры
+  init() {
     this.field = [];
     this.bombList = [];
     this.wallList = [];
     this.boxList = [];
-    this.hero = new Hero(1, 1);
+    this.hero = null;
     this.mushList = [];
     this.initField(NUM_OF_COLUMN, NUM_OF_ROW);
     this.tickPassed = 1;
     this.timeLeft = 150;
     this.heroLives = 3;
     this.score = 0;
+    this.level = 1;
   }
+  // устанавливает уровень
+  setLevel(level) {
+    this.hero = new Hero(1, 1);
+    switch (level) {
+      case 1:
+        this.fillField(2);
+        break;
+      case 2:
+        this.fillField(3);
+        break;
+      case 3:
+        this.fillField(4);
+        break;
+      default:
+        break;
+    }
+  }
+  // очищает уровень
+  clearLevel() {
+    this.field = [];
+    this.initField(NUM_OF_COLUMN, NUM_OF_ROW);
+    this.bombList = [];
+    this.wallList = [];
+    this.boxList = [];
+    this.hero = null;
+    this.mushList = [];
+    this.tickPassed = 1;
+    this.timeLeft = 150;
+  }
+
   // инициализация игрового поля
   initField(width, height) {
     for (let i = 0; i < width; i++) {
@@ -263,7 +305,7 @@ class Game {
     }
   }
   // заполнение игрового поля
-  fillField(numOfMushrooms, numOfBoxes) {
+  fillField(numOfMushrooms) {
     // установка стен по краям игрового поля
     this.setHorizontalWalls();
     this.setVerticalWalls();
@@ -370,6 +412,30 @@ class Game {
   decreaseTime() {
     if (isPause == false) {
       this.timeLeft--;
+      if (this.timeLeft == 0) {
+        this.heroKill();
+      }
+    }
+  }
+
+  heroKill() {
+    this.heroLives -= 1;
+    if (this.heroLives > 0) {
+      // загрузка того же лвла
+      showKillMenu();
+    }
+    if (this.heroLives == 0) {
+      // конец игры
+      showLostMenu();
+    }
+  }
+
+  passLevel() {
+    this.level += 1;
+    if (this.level > NUM_OF_LEVELS) {
+      showWinMenu();
+    } else {
+      showPassMenu();
     }
   }
 
@@ -409,6 +475,11 @@ class View {
     this.timeLeft = document.querySelector(".time-left");
     this.heroLives = document.querySelector(".hero-lives");
     this.score = document.querySelector(".score");
+    this.level = document.querySelector(".intro .title");
+    this.killMsg = document.querySelector(".kill-menu .title");
+    this.passMsg = document.querySelector(".pass-menu .title");
+    this.lostMsg = document.querySelector(".lost-menu .title");
+    this.winMsg = document.querySelector(".win-menu .title");
   }
   init() {
     this.fieldWrap.style.height = (HEIGHT_PX * NUM_OF_ROW).toString() + "px";
@@ -468,6 +539,9 @@ class View {
   }
   deleteByObj(obj) {
     let arr = null;
+    if (!obj) {
+      return;
+    }
     switch (obj.name) {
       case "Box":
         arr = this.boxList;
@@ -475,20 +549,31 @@ class View {
       case "Mushroom":
         arr = this.mushList;
         break;
-      /*case "Hero":
-        arr = this.hero;
-        break;*/
       case "Bomb":
         arr = this.bombList;
+        break;
+      case "Hero":
+        this.deleteNodeByObj(obj);
+        this.hero = null;
+        break;
+      case "Wall":
+        arr = this.wallList;
+        break;
+      // скорее всего никогда не выполнится
+      case "Blast":
+        arr = this.blastList;
         break;
       default:
         break;
     }
-
-    let link = this.getLink(obj);
-    let idx = arr.indexOf(link);
-    this.deleteNodeByObj(obj);
-    arr.splice(idx, 1);
+    if (arr) {
+      let link = this.getLink(obj);
+      let idx = arr.indexOf(link);
+      if (idx >= 0) {
+        this.deleteNodeByObj(obj);
+        arr.splice(idx, 1);
+      }
+    }
   }
   deleteNodeByObj(obj) {
     let link = this.getLink(obj);
@@ -500,7 +585,7 @@ class View {
   // возвращает link по obj либо null если связь не найдена
   getLink(obj) {
     if (this.hero.obj == obj) {
-      return link;
+      return this.hero;
     }
     for (const link of this.mushList) {
       if (link.obj == obj) {
@@ -529,13 +614,36 @@ class View {
     }
     return null;
   }
-  opening() {}
+  clear() {
+    for (let i = 0, arr = this.boxList, n = arr.length; i < n; i++)
+      this.deleteByObj(arr[0].obj);
+    for (let i = 0, arr = this.mushList, n = arr.length; i < n; i++)
+      this.deleteByObj(arr[0].obj);
+    for (let i = 0, arr = this.bombList, n = arr.length; i < n; i++)
+      this.deleteByObj(arr[0].obj);
+    for (let i = 0, arr = this.wallList, n = arr.length; i < n; i++)
+      this.deleteByObj(arr[0].obj);
+    for (let i = 0, arr = this.blastList, n = arr.length; i < n; i++)
+      this.deleteByObj(arr[0].obj);
+    if (this.hero.obj) this.deleteByObj(this.hero.obj);
+  }
   redraw() {
     this.tickPassed.textContent = game.tickPassed;
 
-    this.timeLeft.textContent = "Осталось времени: " + game.timeLeft;
+    // перерисовка строки состояния
+    this.timeLeft.textContent = "Time: " + game.timeLeft;
     this.heroLives.textContent = "Жизни: " + game.heroLives;
     this.score.textContent = "Счёт: " + game.score;
+
+    // перерисовка строк в меню
+    this.level.textContent = "Уровень " + game.level;
+    this.killMsg.textContent =
+      "Вы погибли. У вас осталось " + game.heroLives + " жизней";
+    this.passMsg.textContent = "Вы успешно прошли уровень";
+    this.lostMsg.textContent =
+      "Игра окончена, вы проиграли. Ваш результат: " + game.score + " очков.";
+    this.winMsg.textContent =
+      "Игра окончена, вы победили. Ваш результат: " + game.score + " очков.";
 
     // перерисовка героя
     this.hero.node.style.top = (HEIGHT_PX * this.hero.obj.y).toString() + "px";
@@ -597,6 +705,7 @@ function setPause(event) {
       isPause = false;
     } else {
       setAllNone();
+      menu.gameWrap.style.display = "Block";
       menu.pauseMenu.style.display = "Block";
       isPause = true;
     }
@@ -614,9 +723,9 @@ function setBomb(event) {
 }
 
 game = new Game();
-game.fillField(2, 22);
+
 view = new View();
-view.init();
+//view.init();
 
 let timerTick = setInterval(tick, TICK_INTERVAL);
 let timerTimeLeft = setInterval(decreaseTime, 1000);
@@ -632,12 +741,68 @@ let menu = {
   gameWrap: document.querySelector(".game-wrapper"),
   tutorial: document.querySelector(".how-to-play"),
   pauseMenu: document.querySelector(".pause-menu"),
+  intro: document.querySelector(".intro"),
+  killMenu: document.querySelector(".kill-menu"),
+  passMenu: document.querySelector(".pass-menu"),
+  lostMenu: document.querySelector(".lost-menu"),
+  winMenu: document.querySelector(".win-menu"),
 };
 
 function setAllNone() {
   for (const i in menu) {
     menu[i].style.display = "None";
   }
+}
+function levelLoad() {
+  setAllNone();
+  menu.gameWrap.style.display = "Block";
+  isMenu = false;
+  isPause = false;
+  view.clear();
+  game.clearLevel();
+  game.setLevel(game.level);
+  view.init();
+}
+function toMainAfterEndGame() {
+  // место для записи результата
+  setAllNone();
+  menu.mainMenu.style.display = "Block";
+  game = new Game();
+}
+function levelTransition() {
+  setAllNone();
+  menu.intro.style.display = "Block";
+  let introStrDiv = document.querySelector(".intro .title");
+  introStrDiv.textContent = "Уровень " + game.level;
+  setTimeout(levelLoad, 1500);
+}
+function showKillMenu() {
+  setAllNone();
+  menu.gameWrap.style.display = "Block";
+  menu.killMenu.style.display = "Block";
+  isMenu = true;
+  isPause = true;
+}
+function showPassMenu() {
+  setAllNone();
+  menu.gameWrap.style.display = "Block";
+  menu.passMenu.style.display = "Block";
+  isMenu = true;
+  isPause = true;
+}
+function showLostMenu() {
+  setAllNone();
+  menu.gameWrap.style.display = "Block";
+  menu.lostMenu.style.display = "Block";
+  isMenu = true;
+  isPause = true;
+}
+function showWinMenu() {
+  setAllNone();
+  menu.gameWrap.style.display = "Block";
+  menu.winMenu.style.display = "Block";
+  isMenu = true;
+  isPause = true;
 }
 
 let buttons = {
@@ -648,6 +813,8 @@ let buttons = {
   pauseToGame: document.querySelector(".pause-to-game"),
   pauseToTutorial: document.querySelector(".pause-to-tutorial"),
   pauseToMain: document.querySelector(".pause-to-main"),
+  loadLevel: document.querySelectorAll(".load-level"),
+  toMain: document.querySelectorAll(".to-main"),
 };
 
 buttons.newGame.addEventListener("click", () => {
@@ -656,10 +823,8 @@ buttons.newGame.addEventListener("click", () => {
 });
 
 buttons.startGame.addEventListener("click", () => {
-  setAllNone();
-  menu.gameWrap.style.display = "Block";
-  isMenu = false;
-  isPause = false;
+  game = new Game();
+  levelTransition();
 });
 
 buttons.tutorial.addEventListener("click", () => {
@@ -686,3 +851,18 @@ buttons.pauseToMain.addEventListener("click", () => {
   setAllNone();
   menu.mainMenu.style.display = "Block";
 });
+
+// эксперимент с foreach
+buttons.loadLevel.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    levelTransition();
+  });
+});
+buttons.toMain.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    toMainAfterEndGame();
+  });
+});
+
+setAllNone();
+menu.mainMenu.style.display = "Block";

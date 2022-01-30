@@ -42,7 +42,7 @@
       </div>
       <div class="enter-name" style="display: none">
         <div class="title">Введите имя героя</div>
-        <input type="text" />
+        <input type="text" class="input-hero-name" />
         <button class="start-game">Ок</button>
       </div>
       <div class="how-to-play" style="display: none">
@@ -65,16 +65,37 @@
         <button class="from-tutorial-to-main">Ок</button>
       </div>
       <div class="pause-menu" style="display: none">
+        <div class="title">Пауза</div>
         <button class="pause-to-game">Продолжить</button>
         <button class="pause-to-tutorial">Как играть</button>
         <button class="pause-to-main">Выйти в меню</button>
       </div>
+      <div class="kill-menu">
+        <div class="title"></div>
+        <button class="load-level">Ок</button>
+      </div>
+      <div class="pass-menu">
+        <div class="title"></div>
+        <button class="load-level">Ок</button>
+      </div>
+
+      <div class="lost-menu">
+        <div class="title"></div>
+        <button class="to-main">В главное меню</button>
+      </div>
+      <div class="win-menu">
+        <div class="title"></div>
+        <button class="to-main">В главное меню</button>
+      </div>
       <div class="game-wrapper" style="display: none">
         <p class="time-left game-status-bar">Текст</p>
-        <p class="tick game-status-bar">Текст</p>
         <p class="hero-lives game-status-bar">Текст</p>
         <p class="score game-status-bar">Текст</p>
+        <p class="tick game-status-bar">Текст</p>
         <div class="game-field"></div>
+      </div>
+      <div class="intro">
+        <div class="title">Уровень хз какой</div>
       </div>
     </div>
     <script src="./script/main.js"></script>
