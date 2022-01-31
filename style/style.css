@@ -123,8 +123,12 @@ button:active {
 }
 
 .new-game,
-.tutorial {
-  width: 90%;
+.tutorial,
+.to-main,
+.pause-to-main,
+.pause-to-game,
+.pause-to-tutorial {
+  width: 85%;
 }
 
 .main-menu,
